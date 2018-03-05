@@ -1,84 +1,80 @@
 package read;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 递归读取某个目录下的所有文件
  */
 public class readFile {
 
-    private static List test(String fileDir) {
+    private static Map<String,List> test(String fileDir) {
         File file = new File(fileDir);
         File[] files = file.listFiles();// 获取目录下的所有文件或文件夹
         if (files == null) {
             return null;
         }
-
-        List<String> finaList=new ArrayList<String>();
+        List<String> AF1001List=new ArrayList<String>();
+        List<String> AF1002List=new ArrayList<String>();
         for (File f1 : files) {
             if (f1.isFile()) {
-                String str = getFileContent(f1);
-                finaList.addAll(getJsonString(str));
+               Map<String,List> map= getFileContent(f1);
+               AF1001List.addAll(map.get("AF1001"));
+               AF1002List.addAll(map.get("AF1002"));
+                /*finaList.addAll(getJsonString(str));*/
             }else{
                 continue;
             }
-
         }
-        return finaList;
+        Map<String,List> map=new HashMap<String, List>();
+        map.put("AF1001",AF1001List);
+        map.put("AF1002",AF1002List);
+        return map;
     }
 
-    //读取文件内容
-    public static String getFileContent(File file) {
+
+    public static Map<String,List> getFileContent(File file){
+        //读取文件的内容，转为字符串
         FileInputStream in = null;
         StringBuffer sb = new StringBuffer();
+        BufferedReader reader = null;
         try {
-            in = new FileInputStream(file);
-            byte[] b = new byte[(int)file.length()];
-            int read = 0;
-            while ((read = in.read(b)) != -1) {
-                sb.append(new String(b));
-            }
-            String str = sb.toString();
-            return str;
-            // return new String(str.getBytes("GBK"), "UTF-8");;
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
+            reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+            List<String> listAF1001 = new ArrayList<String>();
+            List<String> listAF1002 = new ArrayList<String>();
+            while (reader.ready()) {
+                String readerLine = reader.readLine();
+                String regEx = ":\\{\"applicants\":.*";
+                Pattern p = Pattern.compile(regEx);
+                Matcher matcher = p.matcher(readerLine);
+                while (matcher.find()) {
+                    if (matcher.group().contains("AF1001")) {
+                        listAF1001.add(matcher.group());
+                    } else {
+                        listAF1002.add(matcher.group());
+                    }
                 }
             }
+            Map<String,List> map=new HashMap<String, List>();
+            if(listAF1001!=null){
+                map.put("AF1001",listAF1001);
+            }
+            if(listAF1002!=null){
+                map.put("AF1002",listAF1002);
+            }
+            return map;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch(Exception e){
+        e.printStackTrace();
         }
         return null;
     }
 
-    //获取getJson后面的内容
-    public static List<String> getJsonString(String string){
-        List<String> list=new ArrayList<String>();
-        String [] strs=null;
-        if(string.contains("getInputJson:")){
-            strs =string.split("getInputJson:");
-        }else{
-            return null;
-        }
-        for(String str:strs){
-            if(str.contains("{\"applicants\":")){
-                int index=str.indexOf("{\"applicants\":");
-                String sb=str.substring(index,str.length());
-                int indexx=sb.indexOf("审批过程中系统自动调用\"}}");
-                sb=sb.substring(0,indexx+14);
-                list.add(sb);
-                System.out.println(sb);
-            }
-        }
-        return list;
-    }
+
 
 
     //读取配置文件
@@ -86,13 +82,33 @@ public class readFile {
         Properties properties = new Properties();
         properties.load(readFile.class.getClassLoader().getResourceAsStream("config.properties"));
         String templateFileName = (String) properties.get("connectionsFilesPath");
-        List<String> list=test(templateFileName);
+        Map<String,List> map=test(templateFileName);
         String url="http://127.0.0.1:8080/HxbDataFluxApi/HXBApiEntrance";
-        for(String str:list){
-            try{
-                HttpUtil.doPost(url,str);
-            }catch(Exception e) {
-                e.printStackTrace();
+        List<String> listAF1001 =new ArrayList<String>();
+        if(map.get("AF1001")!=null){
+            listAF1001 = map.get("AF1001");
+        }
+
+        List<String> listAF1002 = new ArrayList<String>();
+        if(map.get("AF1002")!=null){
+            listAF1002 = map.get("AF1002");
+        }
+        if(listAF1001!=null) {
+            for (String str : listAF1001) {
+                try {
+                    HttpUtil.doPost(url, str);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        if(listAF1002!=null) {
+            for (String str1 : listAF1002) {
+                try {
+                    HttpUtil.doPost(url, str1);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
