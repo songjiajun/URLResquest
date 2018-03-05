@@ -38,8 +38,7 @@ public class HttpUtil {
         String readContent = null;
         System.out.println("1.Get Response Status: " + response.getStatusLine());
         if (entity != null) {
-            System.out.println("  Get ResponseContentEncoding():" + entity.getContentEncoding());
-            System.out.println("  Content Length():" + entity.getContentLength());
+
             //getResponse
             InputStream in = entity.getContent();
             int count = 0;
@@ -56,7 +55,6 @@ public class HttpUtil {
             //转换成字符串
             readContent = new String(bytes, 0, readCount, "UTF-8"); // convert to string using bytes
 
-            System.out.println("2.Get Response Content():\n" + readContent);
         }
         return readContent;
     }
