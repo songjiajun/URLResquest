@@ -13,9 +13,8 @@ public class readFile {
     private static List test(String fileDir) {
         File file = new File(fileDir);
         File[] files = file.listFiles();// 获取目录下的所有文件或文件夹
-        System.out.println(files.length);
-        if (files == null) {// 如果目录为空，直接退出
-
+        if (files == null) {
+            return null;
         }
 
         List<String> finaList=new ArrayList<String>();
